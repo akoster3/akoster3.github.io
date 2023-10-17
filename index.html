@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IS 445: Assignment 3</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.25.0/build/vega.min.js"
+        integrity="sha256-na2uPt+tUPV7GRVpc+/ezQj+lGwljIvOJifkmg8f3as=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.16.1/build/vega-lite.min.js"
+        integrity="sha256-yxS2NsAY/IBasuR7AxQmdq7FIl081I4HAJ8hYViypMM=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.23.0/build/vega-embed.min.js"
+        integrity="sha256-WPNDJAJy1+0leU+H5tqxb07nPsGRIPvlQxgodYqkHm0=" crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <p> This is Andrew Koster's submission for Assignment 3</p>
+    <div id="viz"></div>
+    <script>
+        var vlSpec = {
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "data": {
+                "url": "https://uiuc-ischool-dataviz.github.io/fall2023-acg-acu/data/building_inventory.csv"
+            },
+            "vconcat": [
+                {
+                    "width": "600",
+                    "mark": { "type": "point", "shape": "diamond" },
+                    "params": [{ "name": "myfirstparam", "select": "interval" }],
+                    "encoding": {
+                        "x": { "field": "Year Acquired", "type": "temporal" },
+                        "y": { "field": "Year Constructed", "type": "temporal" },
+                        "tooltip": [{ "field": "Bldg Status", "type": "nominal" }],
+                        "color": { "value": "grey", "condition": { "param": "myfirstparam" } }
+                    }
+                }
+            ]
+
+        };
+        vegaEmbed("#viz", vlSpec);
+    </script>
+
+</body>
+
+</html>
