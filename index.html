@@ -1,45 +1,192 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IS 445: Assignment 3</title>
-    <script src="https://cdn.jsdelivr.net/npm/vega@5.25.0/build/vega.min.js"
-        integrity="sha256-na2uPt+tUPV7GRVpc+/ezQj+lGwljIvOJifkmg8f3as=" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.16.1/build/vega-lite.min.js"
-        integrity="sha256-yxS2NsAY/IBasuR7AxQmdq7FIl081I4HAJ8hYViypMM=" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.23.0/build/vega-embed.min.js"
-        integrity="sha256-WPNDJAJy1+0leU+H5tqxb07nPsGRIPvlQxgodYqkHm0=" crossorigin="anonymous"></script>
+    <title>Storm Events</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.25.0/build/vega.min.js" integrity="sha256-na2uPt+tUPV7GRVpc+/ezQj+lGwljIvOJifkmg8f3as=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.15.0/build/vega-lite.min.js" integrity="sha256-WLAn82Ut4GptY/IJf4K/1i+R8ibAkVLFhBVkOovqCK8=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.22.2/build/vega-embed.min.js" integrity="sha256-GfFZ6w7V/y3Ws9eHVsOXZ/F1ZFroThVZraOAx3HAt6s=" crossorigin="anonymous"></script>
 </head>
-
 <body>
-    <p> This is Andrew Koster's submission for Assignment 3</p>
     <div id="viz"></div>
     <script>
         var vlSpec = {
             "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
             "data": {
-                "url": "https://uiuc-ischool-dataviz.github.io/fall2023-acg-acu/data/building_inventory.csv"
+            "name": "storm",
+            "url": "https://raw.githubusercontent.com/Meng6/dataviz-group-project/main/StormEvents_details-ftp_v1.0_d2023_c20231017.csv"
             },
-            "vconcat": [
+            "transform": [
+            {
+                "aggregate": [{"op": "count", "field": "EVENT_ID", "as": "count"}],
+                "groupby": ["STATE_FIPS", "STATE", "BEGIN_YEARMONTH"]
+            }
+            ],
+            "hconcat": [
+            {
+                "vconcat": [
                 {
-                    "width": "600",
-                    "mark": { "type": "point", "shape": "diamond" },
-                    "params": [{ "name": "myfirstparam", "select": "interval" }],
+                    "width": 500,
+                    "height": 300,
+                    "title": "Number of Storm Events in Each State",
+                    "transform": [
+                    {
+                        "filter": "selected_yearmonth.BEGIN_YEARMONTH != null?datum.BEGIN_YEARMONTH == selected_yearmonth.BEGIN_YEARMONTH:isValid(datum.BEGIN_YEARMONTH)"
+                    },
+                    {
+                        "aggregate": [{"op": "sum", "field": "count", "as": "count"}],
+                        "groupby": ["STATE_FIPS", "STATE"]
+                    },
+                    {
+                        "lookup": "STATE_FIPS",
+                        "from": {
+                        "data": {
+                            "name": "map",
+                            "url": "https://raw.githubusercontent.com/vega/vega/main/docs/data/us-10m.json",
+                            "format": {"type": "topojson", "feature": "states"}
+                        },
+                        "key": "id"
+                        },
+                        "as": "geo"
+                    }
+                    ],
+                    "params": [
+                    {
+                        "name": "selected_state",
+                        "select": {"type": "point", "fields": ["STATE"]}
+                    }
+                    ],
+                    "projection": {"type": "albersUsa"},
+                    "mark": "geoshape",
                     "encoding": {
-                        "x": { "field": "Year Acquired", "type": "temporal" },
-                        "y": { "field": "Year Constructed", "type": "temporal" },
-                        "tooltip": [{ "field": "Bldg Status", "type": "nominal" }],
-                        "color": { "value": "grey", "condition": { "param": "myfirstparam" } }
+                    "shape": {"field": "geo", "type": "geojson"},
+                    "color": {
+                        "field": "count",
+                        "type": "quantitative",
+                        "legend": {"orient": "left"}
+                    },
+                    "tooltip": [{"field": "STATE"}, {"field": "count"}]
+                    }
+                },
+                {
+                    "width": 500,
+                    "height": 200,
+                    "mark": {"type": "bar", "cornerRadius": 5},
+                    "params": [
+                    {
+                        "name": "selected_yearmonth",
+                        "select": {"type": "point", "fields": ["BEGIN_YEARMONTH"]}
+                    }
+                    ],
+                    "encoding": {
+                    "x": {"field": "BEGIN_YEARMONTH", "type": "ordinal"},
+                    "y": {
+                        "field": "count",
+                        "type": "quantitative",
+                        "aggregate": "sum",
+                        "title": "COUNT"
+                    },
+                    "fillOpacity": {
+                        "condition": {"param": "selected_yearmonth", "value": 1},
+                        "value": 0.3
+                    }
                     }
                 }
+                ]
+            },
+            {
+                "width": 500,
+                "height": 500,
+                "data": {
+                "name": "storm2",
+                "url": "https://raw.githubusercontent.com/Meng6/dataviz-group-project/main/StormEvents_details-ftp_v1.0_d2023_c20231017.csv"
+                },
+                "transform": [
+                {
+                    "filter": "selected_yearmonth.BEGIN_YEARMONTH != null?(selected_state.STATE != null?datum.BEGIN_YEARMONTH == selected_yearmonth.BEGIN_YEARMONTH && datum.STATE == selected_state.STATE:datum.BEGIN_YEARMONTH == selected_yearmonth.BEGIN_YEARMONTH):isValid(datum.BEGIN_YEARMONTH)"
+                },
+                {
+                    "sort": [{"field": "BEGIN_DATE_TIME"}],
+                    "window": [
+                    {
+                        "op": "sum",
+                        "field": "INJURIES_DIRECT",
+                        "as": "TOTAL_INJURIES_DIRECT"
+                    },
+                    {
+                        "op": "sum",
+                        "field": "INJURIES_INDIRECT",
+                        "as": "TOTAL_INJURIES_INDIRECT"
+                    },
+                    {
+                        "op": "sum",
+                        "field": "DEATH_DIRECT",
+                        "as": "TOTAL_DEATH_DIRECT"
+                    },
+                    {
+                        "op": "sum",
+                        "field": "DEATH_INDIRECT",
+                        "as": "TOTAL_DEATH_INDIRECT"
+                    }
+                    
+                    ],
+                    "frame": [null, 0]
+                }
+                ],
+                "encoding": {"x": {"field": "BEGIN_DATE_TIME", "type": "temporal"}},
+                "layer": [
+                {
+                    "mark": {"type": "line"},
+                    "encoding": {
+                    "y": {
+                        "field": "TOTAL_INJURIES_DIRECT",
+                        "type": "quantitative",
+                        "axis": {"tickMinStep": 1},
+                        "title": null
+                    },
+                    "color": {"datum": "TOTAL_INJURIES_DIRECT"},
+                    "tooltip": [
+                        {"field": "BEGIN_DATE_TIME", "type": "temporal", "timeUnit": "yearmonthdatehoursminutes"},
+                        {"field": "TOTAL_INJURIES_DIRECT", "type": "quantitative"},
+                        {"field": "INJURIES_DIRECT", "type": "quantitative"},
+                        {"field": "INJURIES_INDIRECT", "type": "quantitative"},
+                        {"field": "DEATH_DIRECT", "type": "quantitative"},
+                        {"field": "DEATH_INDIRECT", "type": "quantitative"},
+                        {"field": "MAGNITUDE_TYPE", "type": "nominal"},
+                        {"field": "MAGNITUDE", "type": "ordinal"},
+                        {"field": "EVENT_NARRATIVE", "type": "nominal"}
+                    ]
+                    }
+                },
+                {
+                    "mark": {"type": "line"},
+                    "encoding": {
+                    "y": {
+                        "field": "TOTAL_INJURIES_INDIRECT",
+                        "type": "quantitative",
+                        "axis": {"tickMinStep": 1},
+                        "title": null
+                    },
+                    "color": {"datum": "TOTAL_INJURIES_INDIRECT"},
+                    "tooltip": [
+                        {"field": "BEGIN_DATE_TIME", "type": "temporal", "timeUnit": "yearmonthdatehoursminutes"},
+                        {"field": "TOTAL_INJURIES_INDIRECT", "type": "quantitative"},
+                        {"field": "INJURIES_DIRECT", "type": "quantitative"},
+                        {"field": "INJURIES_INDIRECT", "type": "quantitative"},
+                        {"field": "DEATH_DIRECT", "type": "quantitative"},
+                        {"field": "DEATH_INDIRECT", "type": "quantitative"},
+                        {"field": "MAGNITUDE_TYPE", "type": "nominal"},
+                        {"field": "MAGNITUDE", "type": "ordinal"},
+                        {"field": "EVENT_NARRATIVE", "type": "nominal"}
+                    ]
+                    }
+                }
+                ]
+            }
             ]
-
         };
         vegaEmbed("#viz", vlSpec);
     </script>
-
 </body>
-
 </html>
